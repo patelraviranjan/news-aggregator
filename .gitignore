@@ -1,0 +1,10 @@
+﻿.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.db
+*.db-shm
+*.db-wal
+instance/
+static/uploads/img_cache/
