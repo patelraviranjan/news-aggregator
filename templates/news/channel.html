@@ -1,0 +1,54 @@
+{% extends "layout/base.html" %}
+{% block title %}{{ src.name }} — {{ site_name }}{% endblock %}
+{% block live_page %}channel{% endblock %}
+
+{% block content %}
+<section class="category-hero" style="background:var(--primary)22" data-aos="fade-up">
+  <i class="bi bi-rss-fill display-3" style="color:var(--primary)"></i>
+  <h1 class="fw-bold mt-2">{{ src.name }}</h1>
+  <p class="text-muted mb-0">
+    All stories from {{ src.name }}{% if src.country and src.country != 'global' %} · {{ src.country|upper }}{% endif %}
+  </p>
+</section>
+
+{% if grouped %}
+  {% for bucket in grouped %}
+  <div class="channel-day-group mb-4" data-aos="fade-up">
+    <div class="channel-day-label">
+      <i class="bi bi-calendar3"></i>
+      {{ bucket.date.strftime('%A, %B %d, %Y') if bucket.date else 'Undated' }}
+    </div>
+    <div class="channel-headline-list">
+      {% for a in bucket.articles %}
+      <a class="channel-headline-item" href="{{ url_for('news.article_detail', slug=a.slug) }}">
+        {% if a.image_url %}
+        <span class="channel-headline-thumb" style="background-image:url('{{ proxy_img(a.image_url) }}')"></span>
+        {% else %}
+        <span class="channel-headline-thumb no-photo" style="background:linear-gradient(135deg,{{ a.category.color if a.category else '#2563eb' }},{{ a.category.color if a.category else '#2563eb' }}99);">
+          <i class="{{ a.category.icon if a.category else 'bi bi-newspaper' }}"></i>
+        </span>
+        {% endif %}
+        <span class="channel-headline-text">
+          <span class="channel-headline-time">
+            <i class="bi bi-clock"></i> {{ a.published_at.strftime('%H:%M') if a.published_at else '' }}
+          </span>
+          <span class="channel-headline-title">
+            {{ a.title }}
+            {% if a.is_breaking %}<span class="badge bg-danger ms-2">Breaking</span>{% endif %}
+            {% if a.is_trending %}<span class="badge bg-warning text-dark ms-2">Trending</span>{% endif %}
+          </span>
+          {% if a.category %}
+          <span class="channel-headline-cat" style="color:{{ a.category.color }}">{{ a.category.name }}</span>
+          {% endif %}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">No articles from {{ src.name }} yet.</p>
+{% endif %}
+
+{% include "partials/_pagination.html" with context %}
+{% endblock %}

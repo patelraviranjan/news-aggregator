@@ -1,0 +1,143 @@
+{% extends "layout/base.html" %}
+{% block title %}Home — {{ site_name }}{% endblock %}
+{% block live_page %}home{% endblock %}
+
+{% block hero %}
+<section class="hero-banner" data-aos="fade-up">
+  {% if hero %}
+  <div class="hero-inner" style="background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.7)),url('{{ proxy_img(hero.image_url) if hero.image_url else 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1600' }}');">
+    <div class="container-xxl text-white">
+      <span class="badge bg-danger fs-6 mb-2"><i class="bi bi-broadcast"></i> Featured Story</span>
+      <h1 class="display-4 fw-bold">{{ hero.title }}</h1>
+      <p class="lead col-lg-7">{{ hero.summary }}</p>
+      <a class="btn btn-warning btn-lg rounded-pill fw-bold" href="{{ url_for('news.article_detail', slug=hero.slug) }}">Read full story <i class="bi bi-arrow-right"></i></a>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block content %}
+<!-- Breaking Ticker -->
+<section class="ticker-strip mb-4" data-aos="fade-down">
+  <span class="ticker-strip-label"><i class="bi bi-lightning-charge-fill"></i> Breaking</span>
+  <div class="ticker-strip-track">
+    {% for b in breaking %}
+      <a href="{{ url_for('news.article_detail', slug=b.slug) }}"><i class="bi bi-dot"></i> {{ b.title }}</a>
+    {% endfor %}
+  </div>
+</section>
+
+{% if by_channel %}
+<!-- One box per channel/source, plain top-headline list (no photo, nothing
+     overlapping) — click the channel name to see all of its news, date
+     and time wise. -->
+<section class="row g-4 mb-5" data-aos="fade-up">
+  <div class="col-12">
+    <div class="section-head"><h2><i class="bi bi-broadcast text-primary"></i> Latest From Every Channel</h2></div>
+    <div class="row g-3">
+      {% for src, headlines in by_channel %}
+      <div class="col-md-6 col-lg-4">
+        <div class="channel-box h-100 rounded-4" style="background:var(--card);box-shadow:var(--shadow-s)">
+          <a class="channel-name-bar d-flex align-items-center justify-content-between text-decoration-none"
+             href="{{ url_for('public.channel', source_id=src.id) }}">
+            <span><i class="bi bi-rss-fill"></i> {{ src.name }}</span>
+            <span class="small">See all <i class="bi bi-arrow-right"></i></span>
+          </a>
+          {% if headlines %}
+          <div class="channel-headline-list">
+            {% for a in headlines %}
+            <a class="channel-headline-item" href="{{ url_for('news.article_detail', slug=a.slug) }}">
+              {% if a.image_url %}
+              <span class="channel-headline-thumb" style="background-image:url('{{ proxy_img(a.image_url) }}')"></span>
+              {% else %}
+              <span class="channel-headline-thumb no-photo" style="background:linear-gradient(135deg,{{ a.category.color if a.category else '#2563eb' }},{{ a.category.color if a.category else '#2563eb' }}99);">
+                <i class="{{ a.category.icon if a.category else 'bi bi-newspaper' }}"></i>
+              </span>
+              {% endif %}
+              <span class="channel-headline-text">
+                <span class="channel-headline-time">
+                  <i class="bi bi-clock"></i> {{ a.published_at.strftime('%b %d, %H:%M') if a.published_at else '' }}
+                </span>
+                <span class="channel-headline-title">{{ a.title }}</span>
+              </span>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="news-card-body justify-content-center align-items-center text-center">
+            <p class="text-muted mb-0">No articles fetched yet</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Top Headlines Slider -->
+<section class="mb-5">
+  <div class="section-head" data-aos="fade-up">
+    <h2><i class="bi bi-stars text-warning"></i> Top Headlines</h2>
+    <a class="see-all" href="{{ url_for('public.top_stories') }}">See all <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="swiper headline-swiper" data-aos="slide-up">
+    <div class="swiper-wrapper">
+      {% for a in top %}
+      <div class="swiper-slide">
+        {% include "partials/_card.html" with context %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="swiper-button-next"></div><div class="swiper-button-prev"></div>
+    <div class="swiper-pagination"></div>
+  </div>
+</section>
+
+<!-- Trending strip -->
+{% if trending %}
+<section class="mb-5">
+  <div class="section-head" data-aos="fade-up">
+    <h2><i class="bi bi-fire text-danger"></i> Trending Now</h2>
+    <a class="see-all" href="{{ url_for('public.trending') }}">See all <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-3" data-aos="fade-up">
+    {% for a in trending %}
+      <div class="col-md-6 col-lg-4">
+        {% include "partials/_card.html" with context %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Category sections -->
+{% for slug, section in sections.items() %}
+<section class="mb-5" data-aos="fade-up">
+  <div class="section-head">
+    <h2><i class="{{ section.category.icon }}" style="color:{{ section.category.color }}"></i> {{ section.category.name }}</h2>
+    <a class="see-all" href="{{ url_for('public.category', slug=section.category.slug) }}">More <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="row g-3">
+    {% for a in section.articles %}
+      <div class="col-md-6 col-lg-3">
+        {% include "partials/_card.html" with context %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<!-- Latest -->
+<section class="row g-4 mb-5" data-aos="fade-up">
+  <div class="col-12">
+    <div class="section-head"><h2><i class="bi bi-clock-history text-primary"></i> Latest News</h2></div>
+    {% with articles = latest.items, empty_message = "No articles yet — fetch a source from the admin Sources page to populate the feed." %}
+      {% include "partials/_date_grouped_articles.html" with context %}
+    {% endwith %}
+    {% with items = latest %}{% include "partials/_pagination.html" %}{% endwith %}
+  </div>
+</section>
+{% endblock %}

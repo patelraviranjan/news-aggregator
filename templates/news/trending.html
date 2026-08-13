@@ -1,0 +1,10 @@
+{% extends "layout/base.html" %}
+{% block title %}Trending — {{ site_name }}{% endblock %}
+{% block live_page %}trending{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-fire text-danger"></i> Trending Now</h2></div>
+{% with articles = items.items, empty_message = "No trending stories right now." %}
+  {% include "partials/_date_grouped_articles.html" with context %}
+{% endwith %}
+{% include "partials/_pagination.html" with context %}
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "layout/base.html" %}
+{% block title %}Reading history — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-clock-history text-primary"></i> Reading History</h2></div>
+<div class="row g-4">
+  {% for a, h in pairs %}
+    <div class="col-md-6 col-lg-4">{% include "partials/_card.html" with context %}</div>
+  {% else %}
+    <p class="text-muted">Nothing here yet. Open an article and we'll log it.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "layout/base.html" %}
+{% block title %}500 — {{ site_name }}{% endblock %}
+{% block content %}
+<section class="empty-state" data-aos="zoom-in">
+  <i class="bi bi-bug display-1 text-danger"></i>
+  <h1 class="display-3 fw-bold gradient-text">Something broke on our server</h1>
+  <p class="lead text-muted">Our team has been notified. Try refreshing in a moment.</p>
+  <a class="btn btn-primary btn-lg rounded-pill" href="{{ url_for('public.home') }}"><i class="bi bi-arrow-clockwise"></i> Retry</a>
+</section>
+{% endblock %}

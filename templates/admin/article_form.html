@@ -1,0 +1,104 @@
+{% extends "layout/base.html" %}
+{% block title %}{{ 'Edit Article' if article else 'Add Article' }} — Admin{% endblock %}
+{% block content %}
+<div class="section-head d-flex justify-content-between align-items-center" data-aos="fade-up">
+  <h2><i class="bi bi-{{ 'pencil-square' if article else 'plus-circle' }} text-primary"></i> {{ 'Edit Article' if article else 'Add Article' }}</h2>
+  <a href="{{ url_for('admin.articles') }}" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-arrow-left"></i> Back to Articles</a>
+</div>
+
+<form method="post" class="card border-0 shadow rounded-4 p-4" data-aos="fade-up">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="row g-3">
+    <div class="col-md-8">
+      <label class="form-label fw-semibold">Title *</label>
+      <input class="form-control rounded-pill" name="title" required value="{{ article.title if article else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Slug</label>
+      <input class="form-control rounded-pill" name="slug" placeholder="auto-generated from title" value="{{ article.slug if article else '' }}">
+    </div>
+
+    <div class="col-12">
+      <label class="form-label fw-semibold">Summary</label>
+      <textarea class="form-control rounded-4" name="summary" rows="2">{{ article.summary if article else '' }}</textarea>
+    </div>
+
+    <div class="col-12">
+      <label class="form-label fw-semibold">Content</label>
+      <textarea class="form-control rounded-4" name="content" rows="8">{{ article.content if article else '' }}</textarea>
+      <small class="text-muted">Basic formatting tags only (b, i, p, ul, li, a, blockquote…) — anything else is stripped.</small>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Image URL</label>
+      <input class="form-control rounded-pill" name="image_url" value="{{ article.image_url if article else '' }}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-semibold">Source Article URL</label>
+      <input class="form-control rounded-pill" name="url" value="{{ article.url if article else '' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Category</label>
+      <select class="form-select rounded-pill" name="category_id">
+        <option value="">— none —</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {% if article and article.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Source</label>
+      <select class="form-select rounded-pill" name="source_id">
+        <option value="">— none —</option>
+        {% for s in sources %}
+          <option value="{{ s.id }}" {% if article and article.source_id == s.id %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Source Name (if not in list)</label>
+      <input class="form-control rounded-pill" name="source_name" value="{{ article.source_name if article else '' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Author</label>
+      <input class="form-control rounded-pill" name="author" value="{{ article.author if article else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Language</label>
+      <input class="form-control rounded-pill" name="language" value="{{ article.language if article else 'en' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Country</label>
+      <input class="form-control rounded-pill" name="country" value="{{ article.country if article else 'global' }}">
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Published At</label>
+      <input type="datetime-local" class="form-control rounded-pill" name="published_at"
+             value="{{ article.published_at.strftime('%Y-%m-%dT%H:%M') if article and article.published_at else '' }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Reading Time (min)</label>
+      <input type="number" min="1" class="form-control rounded-pill" name="reading_time" value="{{ article.reading_time if article else 3 }}">
+    </div>
+    <div class="col-md-4 d-flex align-items-end gap-4">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_breaking" id="is_breaking" {% if article and article.is_breaking %}checked{% endif %}>
+        <label class="form-check-label" for="is_breaking">Breaking</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_trending" id="is_trending" {% if article and article.is_trending %}checked{% endif %}>
+        <label class="form-check-label" for="is_trending">Trending</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 text-end">
+    <a href="{{ url_for('admin.articles') }}" class="btn btn-outline-secondary rounded-pill me-2">Cancel</a>
+    <button class="btn btn-primary rounded-pill px-4"><i class="bi bi-check-lg"></i> {{ 'Save Changes' if article else 'Create Article' }}</button>
+  </div>
+</form>
+{% endblock %}

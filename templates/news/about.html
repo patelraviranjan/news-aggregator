@@ -1,0 +1,13 @@
+{% extends "layout/base.html" %}
+{% block title %}About — {{ site_name }}{% endblock %}
+{% block content %}
+<section data-aos="fade-up" class="text-center">
+  <h1 class="display-4 fw-bold gradient-text">About News Aggregator</h1>
+  <p class="lead col-lg-8 mx-auto">We bring you every story that matters from thousands of trusted sources — beautifully curated, perfectly organised, lightning fast.</p>
+</section>
+<section class="row g-4 mt-4">
+  <div class="col-md-4" data-aos="zoom-in"><div class="feature-tile gradient-bg text-white p-4 rounded-4"><i class="bi bi-globe2 display-4"></i><h3>Global reach</h3><p>Coverage from 50+ countries in 8 languages.</p></div></div>
+  <div class="col-md-4" data-aos="zoom-in"><div class="feature-tile gradient-bg text-white p-4 rounded-4"><i class="bi bi-robot display-4"></i><h3>AI curated</h3><p>Trending detection, dedup and personalised recommendations.</p></div></div>
+  <div class="col-md-4" data-aos="zoom-in"><div class="feature-tile gradient-bg text-white p-4 rounded-4"><i class="bi bi-shield-check display-4"></i><h3>Trusted</h3><p>Only reputable publishers, transparent sourcing, zero ads in article view.</p></div></div>
+</section>
+{% endblock %}

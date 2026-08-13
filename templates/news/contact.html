@@ -1,0 +1,17 @@
+{% extends "layout/base.html" %}
+{% block title %}Contact — {{ site_name }}{% endblock %}
+{% block content %}
+<section data-aos="fade-up" class="text-center">
+  <h1 class="display-4 fw-bold gradient-text">Contact us</h1>
+  <p class="lead col-lg-7 mx-auto text-muted">Spotted a bug? Have a tip or partnership idea? Drop us a line.</p>
+</section>
+<form class="contact-form mx-auto p-4 rounded-4 shadow-lg mt-4" data-aos="zoom-in">
+  <div class="row g-3">
+    <div class="col-md-6"><input class="form-control" placeholder="Your name" required></div>
+    <div class="col-md-6"><input class="form-control" type="email" placeholder="Email" required></div>
+    <div class="col-12"><input class="form-control" placeholder="Subject" required></div>
+    <div class="col-12"><textarea class="form-control" rows="6" placeholder="Tell us…" required></textarea></div>
+    <div class="col-12"><button class="btn btn-primary btn-lg rounded-pill"><i class="bi bi-send"></i> Send message</button></div>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "layout/base.html" %}
+{% block title %}Breaking — {{ site_name }}{% endblock %}
+{% block live_page %}breaking{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up">
+  <h2><i class="bi bi-broadcast text-danger"></i> Breaking News</h2>
+  <span class="badge bg-danger pulse">LIVE</span>
+</div>
+{% with articles = items.items, empty_message = "No breaking stories right now." %}
+  {% include "partials/_date_grouped_articles.html" with context %}
+{% endwith %}
+{% include "partials/_pagination.html" with context %}
+{% endblock %}

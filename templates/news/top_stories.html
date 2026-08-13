@@ -1,0 +1,9 @@
+{% extends "layout/base.html" %}
+{% block title %}Top Stories — {{ site_name }}{% endblock %}
+{% block live_page %}top-stories{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-stars text-warning"></i> Top Stories</h2></div>
+{% with articles = items, empty_message = "No top stories right now." %}
+  {% include "partials/_date_grouped_articles.html" with context %}
+{% endwith %}
+{% endblock %}

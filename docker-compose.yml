@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  web:
+    build: ./backend
+    container_name: news_aggregator_web
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.example
+    environment:
+      DATABASE_URL: postgresql://news:news@db:5432/newsdb
+      FLASK_ENV: production
+      REDIS_URL: redis://cache:6379/0
+    depends_on:
+      - db
+      - cache
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/static/uploads:/app/static/uploads
+
+  db:
+    image: postgres:16-alpine
+    container_name: news_aggregator_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: news
+      POSTGRES_PASSWORD: news
+      POSTGRES_DB: newsdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+    container_name: news_aggregator_cache
+    restart: unless-stopped
+
+volumes:
+  pgdata:

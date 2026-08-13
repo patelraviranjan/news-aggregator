@@ -1,0 +1,20 @@
+{% extends "layout/base.html" %}
+{% block title %}Search — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-search text-primary"></i> Search</h2></div>
+<form method="get" class="search-hero" data-aos="zoom-in">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search thousands of stories…" autofocus>
+  <select name="sort" class="form-select">
+    <option value="newest"  {% if sort=='newest' %}selected{% endif %}>Newest</option>
+    <option value="oldest"  {% if sort=='oldest' %}selected{% endif %}>Oldest</option>
+    <option value="popular" {% if sort=='popular' %}selected{% endif %}>Popularity</option>
+  </select>
+  <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+</form>
+<div class="mt-3">
+{% with articles = results.items, empty_message = "No results found for '" + q + "'. Try another keyword." %}
+  {% include "partials/_date_grouped_articles.html" with context %}
+{% endwith %}
+</div>
+{% include "partials/_pagination.html" with context %}
+{% endblock %}

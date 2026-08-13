@@ -1,0 +1,25 @@
+{# Reusable article card — coloured by category #}
+{% set col = a.category.color if a.category else '#2563eb' %}
+{% set icon = a.category.icon if a.category else 'bi bi-newspaper' %}
+<a class="news-card h-100" href="{{ url_for('news.article_detail', slug=a.slug) }}" data-aos="fade-up">
+  {% if a.image_url %}
+  <div class="news-card-img" style="background-image:url('{{ proxy_img(a.image_url) }}');">
+  {% else %}
+  <div class="news-card-img no-photo" style="background:linear-gradient(135deg,{{ col }},{{ col }}99);">
+    <i class="{{ icon }}"></i>
+  {% endif %}
+    {% if a.is_breaking %}<span class="badge bg-danger news-badge"><i class="bi bi-broadcast"></i> Breaking</span>
+    {% elif a.is_trending %}<span class="badge bg-warning text-dark news-badge"><i class="bi bi-fire"></i> Trending</span>
+    {% endif %}
+    <span class="badge news-cat-badge" style="background:{{ col }}">{{ a.category.name if a.category else 'News' }}</span>
+  </div>
+  <div class="news-card-body">
+    <h3 class="news-card-title">{{ a.title }}</h3>
+    <p class="news-card-summary">{{ a.summary or '' }}</p>
+    <div class="news-card-meta">
+      <span><i class="bi bi-newspaper"></i> {{ a.source_name or 'Wire' }}</span>
+      <span><i class="bi bi-clock"></i> {{ a.published_at.strftime('%b %d, %H:%M') if a.published_at else '' }}</span>
+      <span><i class="bi bi-eye"></i> {{ a.views or 0 }}</span>
+    </div>
+  </div>
+</a>

@@ -1,0 +1,67 @@
+{% extends "layout/base.html" %}
+{% block title %}My Profile — Admin{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-4" data-aos="fade-right">
+    <div class="profile-card text-center">
+      <img class="avatar-xl" src="{{ url_for('static', filename=current_user.avatar or 'images/default-avatar.png') }}" alt="" style="width:120px;height:120px;object-fit:cover;border-radius:50%;">
+      <h3 class="mt-3">{{ current_user.name }}</h3>
+      <p class="text-muted">{{ current_user.email }}</p>
+      <span class="badge bg-danger">{{ current_user.role }}</span>
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a class="btn btn-outline-danger rounded-pill" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+      </div>
+    </div>
+    <div class="card border-0 shadow rounded-4 p-4 mt-4 text-start">
+      <h5 class="fw-bold mb-3"><i class="bi bi-info-circle"></i> Account details</h5>
+      <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-telephone text-primary"></i>
+          <div><small class="text-muted d-block">Phone</small>{{ current_user.phone or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-geo-alt text-primary"></i>
+          <div><small class="text-muted d-block">Address</small>{{ current_user.address or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-globe text-primary"></i>
+          <div><small class="text-muted d-block">Country</small>{{ current_user.country or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-calendar text-primary"></i>
+          <div><small class="text-muted d-block">Joined</small>{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-clock-history text-primary"></i>
+          <div><small class="text-muted d-block">Last login</small>{{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else '—' }}</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-8" data-aos="fade-left">
+    <div class="card border-0 shadow rounded-4 p-4">
+      <h4 class="fw-bold"><i class="bi bi-pencil-square"></i> Edit profile</h4>
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Name</label><input name="name" class="form-control rounded-pill" value="{{ current_user.name }}"></div>
+          <div class="col-md-6"><label class="form-label">Email</label><input class="form-control rounded-pill" value="{{ current_user.email }}" disabled></div>
+          <div class="col-md-6"><label class="form-label">Phone number <span class="text-danger">*</span></label><input type="tel" name="phone" class="form-control rounded-pill" placeholder="+1 555 000 0000" value="{{ current_user.phone or '' }}" required></div>
+          <div class="col-md-6"><label class="form-label">Country <span class="text-danger">*</span></label><input name="country" class="form-control rounded-pill" value="{{ current_user.country or '' }}" required></div>
+          <div class="col-12"><label class="form-label">Address <span class="text-danger">*</span></label><input name="address" class="form-control rounded-pill" placeholder="Street, city, state, ZIP" value="{{ current_user.address or '' }}" required></div>
+          <div class="col-12">
+            <label class="form-label">Profile image <span class="text-danger">*</span></label>
+            <input type="file" name="avatar" class="form-control" accept="image/*" {% if not current_user.avatar or current_user.avatar == 'images/default-avatar.png' %}required{% endif %}>
+            <small class="text-muted">{% if current_user.avatar and current_user.avatar != 'images/default-avatar.png' %}Already uploaded — choose a new file only if you want to replace it.{% else %}A profile image is compulsory.{% endif %}</small>
+          </div>
+          <div class="col-12"><hr><h6 class="text-muted">Change password</h6></div>
+          <div class="col-md-6"><label class="form-label">New password</label><input type="password" name="new_password" class="form-control rounded-pill" placeholder="Leave blank to keep current"></div>
+          <div class="col-md-6"><label class="form-label">Confirm password</label><input type="password" name="confirm_password" class="form-control rounded-pill"></div>
+          <div class="col-12"><button class="btn btn-primary rounded-pill px-4"><i class="bi bi-save"></i> Save changes</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

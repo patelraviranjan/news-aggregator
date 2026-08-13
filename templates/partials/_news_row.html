@@ -1,0 +1,16 @@
+{# Compact icon-row article item — same visual language as the Categories
+   megamenu (thumbnail/icon square + bold title + muted subtitle).
+   Expects: a (article). Optional: row_label (subtitle override, e.g. channel name). #}
+{% set rcol = a.category.color if a.category else '#3b82f6' %}
+{% set ricon = a.category.icon if a.category else 'bi bi-newspaper' %}
+<a class="mega-card news-row-card" href="{{ url_for('news.article_detail', slug=a.slug) }}" data-aos="fade-up">
+  {% if a.image_url %}
+    <div class="mega-icon news-row-thumb" style="background-image:url('{{ proxy_img(a.image_url) }}')"></div>
+  {% else %}
+    <div class="mega-icon" style="background:{{ rcol }}22;color:{{ rcol }}"><i class="{{ ricon }}"></i></div>
+  {% endif %}
+  <div class="min-w-0">
+    <div class="fw-bold text-truncate">{{ a.title }}</div>
+    <small class="text-muted text-truncate d-block">{{ row_label or a.source_name or 'Wire' }}{% if a.published_at %} · {{ a.published_at.strftime('%b %d, %H:%M') }}{% endif %}</small>
+  </div>
+</a>

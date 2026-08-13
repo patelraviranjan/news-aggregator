@@ -1,0 +1,117 @@
+<header class="sticky-top site-header" data-bs-theme="light">
+  <!-- Breaking ticker -->
+  <div class="ticker-wrap">
+    <span class="ticker-label"><i class="bi bi-broadcast"></i> BREAKING</span>
+    <div class="ticker">
+      <div class="ticker-track">
+        {% for a in (latest_breaking if latest_breaking is defined else []) %}
+          <a href="{{ url_for('news.article_detail', slug=a.slug) }}">{{ a.title }}</a>
+        {% endfor %}
+        {% if latest_breaking is not defined or not latest_breaking %}
+          <span class="text-muted small">Live updates from {{ site_name }} — refreshes every 15 minutes</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <nav class="navbar navbar-expand-xl">
+    <div class="container-fluid px-3 px-xl-4">
+      <a class="navbar-brand fw-bold gradient-text" href="{{ url_for('public.home') }}">
+        <i class="bi bi-newspaper me-1"></i>News<span class="text-warning">Aggregator</span>
+      </a>
+
+      <button class="btn btn-light d-xl-none ms-auto me-2 theme-toggle" data-theme-toggle aria-label="theme"><i class="bi bi-moon-stars"></i></button>
+      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-xl-0 align-items-xl-center">
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.home') }}"><i class="bi bi-house"></i> Home</a></li>
+          <li class="nav-item has-mega">
+            <a class="nav-link" href="#" data-mega><i class="bi bi-grid"></i> Categories <i class="bi bi-caret-down-fill small"></i></a>
+            <div class="megamenu p-4">
+              <div class="row g-3">
+                {% for cat in categories[:9] %}
+                <div class="col-6 col-md-4 col-lg-3">
+                  <a class="mega-card" href="{{ url_for('public.category', slug=cat.slug) }}">
+                    <div class="mega-icon" style="background:{{ cat.color }}22;color:{{ cat.color }}"><i class="{{ cat.icon }}"></i></div>
+                    <div>
+                      <div class="fw-bold">{{ cat.name }}</div>
+                      <small class="text-muted">{{ cat.description or 'Latest stories' }}</small>
+                    </div>
+                  </a>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="mega-backdrop"></div>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.top_stories') }}"><i class="bi bi-star"></i> Top Stories</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.trending') }}"><i class="bi bi-fire"></i> Trending</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.breaking') }}"><i class="bi bi-broadcast"></i> Breaking</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.yesterday') }}"><i class="bi bi-calendar-minus"></i> Yesterday</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.about') }}"><i class="bi bi-info-circle"></i> About</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('public.contact') }}"><i class="bi bi-envelope"></i> Contact</a></li>
+          {% if current_user.is_authenticated %}
+            <li class="nav-item d-xl-none"><a class="nav-link text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+          {% endif %}
+        </ul>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap flex-xl-nowrap">
+          <form action="{{ url_for('public.search') }}" class="d-flex search-pill" role="search">
+            <i class="bi bi-search"></i>
+            <input type="search" name="q" placeholder="Search news…" autocomplete="off">
+          </form>
+          <select class="form-select form-select-sm lang-select" aria-label="language">
+            <option>EN</option><option>ES</option><option>FR</option><option>DE</option><option>AR</option><option>HI</option>
+          </select>
+          <button class="btn btn-light theme-toggle d-none d-xl-inline-flex" data-theme-toggle aria-label="theme" title="Toggle theme"><i class="bi bi-moon-stars"></i></button>
+          {% if current_user.is_authenticated %}
+            <div class="dropdown">
+              <button class="btn btn-light position-relative" data-bs-toggle="dropdown" aria-label="notifications">
+                <i class="bi bi-bell"></i>
+                {% if unread_notifications %}<span class="notif-dot">{{ unread_notifications }}</span>{% endif %}
+              </button>
+              <div class="dropdown-menu dropdown-menu-end shadow-lg p-2" style="min-width:280px">
+                <h6 class="dropdown-header">Notifications</h6>
+                <a class="dropdown-item" href="{{ url_for('user.notifications') }}">View all</a>
+                <hr class="dropdown-divider">
+                <a class="dropdown-item" href="{{ url_for('user.bookmarks') }}"><i class="bi bi-bookmark"></i> Bookmarks</a>
+                <a class="dropdown-item" href="{{ url_for('user.history') }}"><i class="bi bi-clock-history"></i> Reading history</a>
+                <hr class="dropdown-divider">
+                {% if current_user.avatar is defined %}
+                <a class="dropdown-item" href="{{ url_for('user.profile') }}"><i class="bi bi-person"></i> Profile</a>
+                <a class="dropdown-item" href="{{ url_for('user.settings') }}"><i class="bi bi-gear"></i> Settings</a>
+                {% else %}
+                <a class="dropdown-item" href="{{ url_for('admin.profile') }}"><i class="bi bi-person"></i> My Profile</a>
+                {% endif %}
+                {% if current_user.role in ('admin', 'superadmin', 'editor', 'moderator') %}<a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Admin</a>
+                <a class="dropdown-item" href="{{ url_for('admin.feed') }}"><i class="bi bi-rss"></i> Submit Feed</a>{% endif %}
+                {% if current_user.role == 'superadmin' %}
+                <a class="dropdown-item" href="{{ url_for('admin.admins') }}"><i class="bi bi-person-badge"></i> Manage Admins</a>
+                {% endif %}
+                <hr class="dropdown-divider">
+                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+              </div>
+            </div>
+            {% if current_user.avatar is defined %}
+            <a href="{{ url_for('user.profile') }}" title="View profile">
+              <img class="avatar-chip" src="{{ url_for('static', filename=current_user.avatar or 'images/default-avatar.png') }}" alt="Profile">
+            </a>
+            {% else %}
+            <a href="{{ url_for('admin.profile') }}" title="My profile">
+              <span class="avatar-chip d-inline-flex align-items-center justify-content-center bg-dark text-white rounded-circle" style="width:36px;height:36px;">
+                <i class="bi bi-person-badge"></i>
+              </span>
+            </a>
+            {% endif %}
+          {% else %}
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            <a class="btn btn-warning btn-sm fw-semibold text-dark" href="{{ url_for('auth.register') }}">Register</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>

@@ -1,0 +1,13 @@
+# Optional: only needed if you set DATABASE_URL to a real PostgreSQL
+# database (e.g. in production/Docker). The app defaults to a local
+# SQLite file (news.db) and runs completely fine without this.
+#
+# Kept separate from requirements.txt because psycopg2-binary doesn't
+# always ship a precompiled wheel for every Python version/platform --
+# when it doesn't, pip falls back to building it from source, which
+# needs PostgreSQL's pg_config + a C compiler installed and fails
+# on a plain Windows/dev machine that doesn't have those.
+#
+# Install with:  pip install -r requirements-postgres.txt
+-r requirements.txt
+psycopg2-binary==2.9.9

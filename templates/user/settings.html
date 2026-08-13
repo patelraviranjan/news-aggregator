@@ -1,0 +1,26 @@
+{% extends "layout/base.html" %}
+{% block title %}Settings — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="card border-0 shadow rounded-4 p-4 mx-auto" style="max-width:780px" data-aos="fade-up">
+  <h3 class="fw-bold"><i class="bi bi-sliders"></i> Settings</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h6 class="text-uppercase text-muted mt-3">Preferences</h6>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">Language</label>
+        <select name="language" class="form-select rounded-pill">
+          {% for l in ['en','es','fr','de','hi','ar'] %}<option {% if current_user.language==l %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6"><label class="form-label">Country</label><input name="country" class="form-control rounded-pill" value="{{ current_user.country or '' }}"></div>
+      <div class="col-12 form-check form-switch"><input class="form-check-input" type="checkbox" name="push_enabled" id="push" {% if current_user.push_enabled %}checked{% endif %}><label for="push" class="form-check-label">Enable push notifications</label></div>
+    </div>
+    <h6 class="text-uppercase text-muted mt-4">Change password</h6>
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label">New password</label><input type="password" name="new_password" class="form-control rounded-pill"></div>
+      <div class="col-md-6"><label class="form-label">Confirm</label><input type="password" name="confirm_password" class="form-control rounded-pill"></div>
+    </div>
+    <button class="btn btn-primary rounded-pill mt-4 px-4"><i class="bi bi-save"></i> Save settings</button>
+  </form>
+</div>
+{% endblock %}

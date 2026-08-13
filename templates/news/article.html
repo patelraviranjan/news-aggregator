@@ -1,0 +1,105 @@
+{% extends "layout/base.html" %}
+{% block title %}{{ article.title }} — {{ site_name }}{% endblock %}
+{% block content %}
+<article class="article-page row g-4">
+  <div class="col-lg-8" data-aos="fade-up">
+    {% set col = article.category.color if article.category else '#2563eb' %}
+    <div class="article-head">
+      <span class="badge mb-2" style="background:{{ col }}">{{ article.category.name if article.category else 'News' }}</span>
+      <h1 class="display-5 fw-bold">{{ article.title }}</h1>
+      <p class="text-muted lead">{{ article.summary }}</p>
+      <div class="article-meta">
+        <span><i class="bi bi-person-circle"></i> {{ article.author or 'Newsroom' }}</span>
+        <span><i class="bi bi-newspaper"></i> {{ article.source_name or 'Wire' }}</span>
+        <span><i class="bi bi-clock"></i> {{ article.published_at.strftime('%b %d, %Y %H:%M') if article.published_at else '' }}</span>
+        <span><i class="bi bi-hourglass-split"></i> {{ article.reading_time }} min read</span>
+        <span><i class="bi bi-eye"></i> {{ article.views }} views</span>
+      </div>
+    </div>
+
+    <img class="article-cover" src="{{ proxy_img(article.image_url) if article.image_url else 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200' }}" alt="">
+
+    <div class="article-actions d-flex gap-2 flex-wrap">
+      <form method="post" action="{{ url_for('user.toggle_bookmark', article_id=article.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-primary rounded-pill"><i class="bi bi-bookmark"></i> Save</button>
+      </form>
+      <form method="post" action="{{ url_for('news.like', slug=article.slug) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-danger rounded-pill"><i class="bi bi-heart"></i> Like <span class="badge bg-danger">{{ article.likes }}</span></button>
+      </form>
+      <a class="btn btn-outline-info rounded-pill" href="https://twitter.com/intent/tweet?url={{ request.url }}&text={{ article.title }}" target="_blank"><i class="bi bi-twitter-x"></i></a>
+      <a class="btn btn-outline-primary rounded-pill" href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank"><i class="bi bi-facebook"></i></a>
+      <a class="btn btn-outline-success rounded-pill" href="https://api.whatsapp.com/send?text={{ article.title }}%20{{ request.url }}" target="_blank"><i class="bi bi-whatsapp"></i></a>
+      <a class="btn btn-outline-secondary rounded-pill" href="{{ article.url or request.url }}" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Source</a>
+    </div>
+
+    {% if not is_preview %}
+    <div class="article-body mt-4">
+      {{ article.content or article.summary or '' }}
+    </div>
+    {% else %}
+    <div class="article-body mt-4 position-relative article-body-gated">
+      <p>{{ preview_body }}{{ '…' if preview_body else '' }}</p>
+      <div class="login-gate text-center rounded-4 p-5 mt-3" style="background:var(--card);box-shadow:var(--shadow-s)">
+        <i class="bi bi-lock-fill fs-1 text-warning"></i>
+        <h4 class="fw-bold mt-3">Log in to read the full story</h4>
+        <p class="text-muted">You've read half the article — create a free account or log in to continue reading.</p>
+        <div class="d-flex justify-content-center gap-2 mt-3">
+          <a class="btn btn-primary rounded-pill px-4" href="{{ url_for('auth.login', next=request.path) }}"><i class="bi bi-box-arrow-in-right"></i> Log in</a>
+          <a class="btn btn-outline-primary rounded-pill px-4" href="{{ url_for('auth.register') }}">Register</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Comments -->
+    <section class="comments mt-5">
+      <h2 class="fw-bold mb-4"><i class="bi bi-chat-quote"></i> Comments ({{ comments|length }})</h2>
+      {% if current_user.is_authenticated %}
+        <form method="post" action="{{ url_for('news.add_comment', slug=article.slug) }}" class="comment-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea name="content" rows="3" class="form-control rounded-4" placeholder="Share your thoughts…" required></textarea>
+          <button class="btn btn-primary rounded-pill mt-2"><i class="bi bi-send"></i> Post comment</button>
+        </form>
+      {% else %}
+        <div class="alert alert-info rounded-4"><a href="{{ url_for('auth.login') }}">Log in</a> to leave a comment.</div>
+      {% endif %}
+      <div class="comment-list mt-4">
+        {% for c in comments %}
+        <div class="comment" data-aos="fade-up">
+          <div class="avatar-chip">{{ (c.user.username or 'U')[0]|upper }}</div>
+          <div>
+            <strong>{{ c.user.username or 'reader' }}</strong>
+            <small class="text-muted">{{ c.created_at.strftime('%b %d, %H:%M') if c.created_at else '' }}</small>
+            <p class="mb-0">{{ c.content|safe }}</p>
+          </div>
+        </div>
+        {% else %}
+          <p class="text-muted">Be the first to comment.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Prev / Next -->
+    <div class="article-pager d-flex justify-content-between mt-5 gap-3">
+      {% if prev_article %}
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ url_for('news.article_detail', slug=prev_article.slug) }}"><i class="bi bi-arrow-left"></i> {{ prev_article.title[:60] }}…</a>
+      {% endif %}{% if next_article %}
+        <a class="btn btn-outline-secondary rounded-pill" href="{{ url_for('news.article_detail', slug=next_article.slug) }}">{{ next_article.title[:60] }}… <i class="bi bi-arrow-right"></i></a>
+      {% endif %}
+    </div>
+  </div>
+
+  <aside class="col-lg-4" data-aos="fade-left">
+    <h5 class="fw-bold mb-3"><i class="bi bi-link-45deg"></i> Related Stories</h5>
+    <div class="row g-3">
+      {% for a in related %}
+        <div class="col-12">{% include "partials/_card.html" with context %}</div>
+      {% else %}
+        <p class="text-muted small">No related articles yet.</p>
+      {% endfor %}
+    </div>
+  </aside>
+</article>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "layout/base.html" %}
+{% block title %}Bookmarks — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-bookmark-heart text-primary"></i> My Bookmarks</h2></div>
+<div class="row g-4">
+  {% for a, b in pairs %}
+    <div class="col-md-6 col-lg-4">{% include "partials/_card.html" with context %}</div>
+  {% else %}
+    <p class="text-muted">You haven't saved anything yet. <a href="{{ url_for('public.home') }}">Discover stories</a>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

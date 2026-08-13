@@ -1,0 +1,15 @@
+{% extends "layout/base.html" %}
+{% block title %}Users — Admin{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-people text-primary"></i> Users</h2></div>
+<div class="card border-0 shadow rounded-4 p-3"><div class="table-responsive"><table class="table table-hover align-middle">
+  <thead><tr><th></th><th>ID</th><th>Username</th><th>Email</th><th>Phone</th><th>Country</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+  <tbody>{% for u in users %}
+    <tr><td><img src="{{ url_for('static', filename=u.avatar or 'images/default-avatar.png') }}" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:50%;"></td>
+    <td>{{ u.id }}</td><td>{{ u.username }}</td><td>{{ u.email }}</td>
+    <td>{{ u.phone or '—' }}</td><td>{{ u.country or '—' }}</td>
+    <td><span class="badge bg-{{ 'danger' if u.role=='admin' else 'secondary' }}">{{ u.role }}</span></td>
+    <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</td>
+    <td class="text-end"><a href="{{ url_for('admin.user_detail', uid=u.id) }}" class="btn btn-sm btn-outline-primary rounded-pill"><i class="bi bi-eye"></i> View</a></td></tr>
+  {% endfor %}</tbody></table></div></div>
+{% endblock %}

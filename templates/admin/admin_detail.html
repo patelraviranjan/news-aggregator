@@ -1,0 +1,134 @@
+{% extends "layout/base.html" %}
+{% block title %}{{ admin_user.name }} — Admin{% endblock %}
+{% block content %}
+<div class="section-head d-flex justify-content-between align-items-center" data-aos="fade-up">
+  <h2><i class="bi bi-person-badge text-primary"></i> Admin detail</h2>
+  <a href="{{ url_for('admin.admins') }}" class="btn btn-outline-secondary rounded-pill btn-sm"><i class="bi bi-arrow-left"></i> Back to admins</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4" data-aos="fade-right">
+    <div class="profile-card text-center">
+      <img class="avatar-xl" src="{{ url_for('static', filename=admin_user.avatar or 'images/default-avatar.png') }}"
+           alt="" style="width:120px;height:120px;object-fit:cover;border-radius:50%;">
+      <h3 class="mt-3">{{ admin_user.name }}{% if admin_user.id == current_user.id %} <span class="badge bg-info text-dark">you</span>{% endif %}</h3>
+      <p class="text-muted">{{ admin_user.email }}</p>
+      <span class="badge bg-{{ 'danger' if admin_user.role == 'superadmin' else ('warning text-dark' if admin_user.role == 'editor' else 'secondary') }}">{{ admin_user.role }}</span>
+
+      {% if current_user.role == 'superadmin' %}
+      <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+        <button type="button" class="btn btn-outline-primary rounded-pill btn-sm" data-bs-toggle="modal" data-bs-target="#editAdminModal">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <form method="post" action="{{ url_for('admin.delete_admin', aid=admin_user.id) }}"
+              onsubmit="return confirm('Delete admin \'{{ admin_user.name }}\'? This cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-danger rounded-pill btn-sm" {{ 'disabled' if admin_user.id == current_user.id else '' }}>
+            <i class="bi bi-trash"></i> Delete
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card border-0 shadow rounded-4 p-4 mt-4 text-start">
+      <h5 class="fw-bold mb-3"><i class="bi bi-person-lines-fill"></i> Contact details</h5>
+      <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-person text-primary"></i>
+          <div><small class="text-muted d-block">Full name</small>{{ admin_user.name }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-envelope text-primary"></i>
+          <div><small class="text-muted d-block">Email</small>{{ admin_user.email }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-telephone text-primary"></i>
+          <div><small class="text-muted d-block">Phone</small>{{ admin_user.phone or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-geo-alt text-primary"></i>
+          <div><small class="text-muted d-block">Address</small>{{ admin_user.address or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-globe text-primary"></i>
+          <div><small class="text-muted d-block">Country</small>{{ admin_user.country or '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-calendar text-primary"></i>
+          <div><small class="text-muted d-block">Joined</small>{{ admin_user.created_at.strftime('%Y-%m-%d') if admin_user.created_at else '—' }}</div>
+        </li>
+        <li class="d-flex align-items-start gap-2">
+          <i class="bi bi-clock-history text-primary"></i>
+          <div><small class="text-muted d-block">Last login</small>{{ admin_user.last_login.strftime('%Y-%m-%d %H:%M') if admin_user.last_login else 'Never' }}</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% if current_user.role == 'superadmin' %}
+<!-- Edit modal -->
+<div class="modal fade" id="editAdminModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('admin.edit_admin', aid=admin_user.id) }}" enctype="multipart/form-data" class="modal-content rounded-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit {{ admin_user.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3 text-center">
+          <img src="{{ url_for('static', filename=admin_user.avatar or 'images/default-avatar.png') }}" alt=""
+               style="width:64px;height:64px;object-fit:cover;border-radius:50%;" class="mb-2">
+          <label class="form-label small d-block">Profile image <span class="text-muted">(leave blank to keep current)</span></label>
+          <input type="file" class="form-control" name="avatar" accept="image/*">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Full name</label>
+          <input class="form-control rounded-pill" name="name" value="{{ admin_user.name }}" required>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Email</label>
+          <input class="form-control rounded-pill" type="email" name="email" value="{{ admin_user.email }}" required>
+        </div>
+        <div class="row g-2">
+          <div class="col-6">
+            <label class="form-label small">Phone</label>
+            <input class="form-control rounded-pill" name="phone" value="{{ admin_user.phone or '' }}">
+          </div>
+          <div class="col-6">
+            <label class="form-label small">Country</label>
+            <input class="form-control rounded-pill" name="country" value="{{ admin_user.country or '' }}">
+          </div>
+        </div>
+        <div class="mb-2 mt-2">
+          <label class="form-label small">Address</label>
+          <input class="form-control rounded-pill" name="address" value="{{ admin_user.address or '' }}">
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">Role</label>
+          <select class="form-select rounded-pill" name="role" {{ 'disabled' if admin_user.id == current_user.id and admin_user.role == 'superadmin' else '' }}>
+            <option value="superadmin" {{ 'selected' if admin_user.role == 'superadmin' else '' }}>Superadmin</option>
+            <option value="editor" {{ 'selected' if admin_user.role == 'editor' else '' }}>Editor</option>
+            <option value="moderator" {{ 'selected' if admin_user.role == 'moderator' else '' }}>Moderator</option>
+          </select>
+          {% if admin_user.id == current_user.id and admin_user.role == 'superadmin' %}
+          <input type="hidden" name="role" value="superadmin">
+          <small class="text-muted">You can't change your own superadmin role.</small>
+          {% endif %}
+        </div>
+        <div class="mb-2">
+          <label class="form-label small">New password <span class="text-muted">(leave blank to keep current)</span></label>
+          <input class="form-control rounded-pill" type="password" name="password" placeholder="••••••••">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary rounded-pill"><i class="bi bi-check-circle"></i> Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

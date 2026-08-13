@@ -1,0 +1,31 @@
+{% extends "layout/base.html" %}
+{% block title %}Categories — Admin{% endblock %}
+{% block content %}
+<div class="section-head" data-aos="fade-up"><h2><i class="bi bi-grid text-primary"></i> Categories</h2></div>
+
+{% if uncategorized_count %}
+<div class="alert alert-warning d-flex justify-content-between align-items-center rounded-4 shadow-sm" data-aos="fade-up">
+  <div><i class="bi bi-exclamation-triangle"></i> {{ uncategorized_count }} article(s) have no category assigned (fetched before auto-categorization was added).</div>
+  <form method="post" action="{{ url_for('admin.categories_backfill') }}" class="mb-0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-warning rounded-pill"><i class="bi bi-magic"></i> Auto-categorize now</button>
+  </form>
+</div>
+{% endif %}
+
+<form method="post" class="row g-2 mb-4 card p-3 border-0 shadow rounded-4" data-aos="fade-up">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-md-2"><input class="form-control rounded-pill" name="slug" placeholder="slug" required></div>
+  <div class="col-md-2"><input class="form-control rounded-pill" name="name" placeholder="Name" required></div>
+  <div class="col-md-2"><input class="form-control rounded-pill" name="icon" placeholder="bi-icon" value="bi-newspaper"></div>
+  <div class="col-md-2"><input class="form-control rounded-pill" name="color" type="color" value="#2563eb"></div>
+  <div class="col-md-1"><input class="form-control rounded-pill" name="sort_order" type="number" value="99"></div>
+  <div class="col-md-2"><input class="form-control rounded-pill" name="description" placeholder="Description"></div>
+  <div class="col-md-1"><button class="btn btn-primary rounded-pill w-100"><i class="bi bi-plus"></i></button></div>
+</form>
+<div class="row g-3">{% for c in items %}
+  <div class="col-md-6 col-lg-4"><div class="p-3 rounded-4 shadow-sm d-flex align-items-center gap-3" style="background:{{ c.color }}22">
+    <i class="{{ c.icon }} display-5" style="color:{{ c.color }}"></i>
+    <div><div class="fw-bold">{{ c.name }}</div><small class="text-muted">/{{ c.slug }} · order {{ c.sort_order }}</small></div></div></div>
+{% endfor %}</div>
+{% endblock %}

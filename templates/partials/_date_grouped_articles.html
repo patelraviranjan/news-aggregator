@@ -1,0 +1,47 @@
+{# Groups `articles` (a flat list) into date-wise buckets, newest date first,
+   each story stamped with its time. Expects: articles (list of Article).
+   Optional: empty_message (shown when the list is empty). #}
+{% set ns = namespace(current_day=None) %}
+{% if articles %}
+  {% for a in articles %}
+    {% set day = a.published_at.date() if a.published_at else None %}
+    {% if day != ns.current_day %}
+      {% if not loop.first %}</div></div>{% endif %}
+      {% set ns.current_day = day %}
+      <div class="channel-day-group mb-4" data-aos="fade-up">
+        <div class="channel-day-label">
+          <i class="bi bi-calendar3"></i>
+          {% if day == today %}Today
+          {% elif day == yesterday %}Yesterday
+          {% else %}{{ a.published_at.strftime('%A, %B %d, %Y') if a.published_at else 'Undated' }}
+          {% endif %}
+        </div>
+        <div class="channel-headline-list">
+    {% endif %}
+      <a class="channel-headline-item" href="{{ url_for('news.article_detail', slug=a.slug) }}">
+        {% if a.image_url %}
+        <span class="channel-headline-thumb" style="background-image:url('{{ proxy_img(a.image_url) }}')"></span>
+        {% else %}
+        <span class="channel-headline-thumb no-photo" style="background:linear-gradient(135deg,{{ a.category.color if a.category else '#2563eb' }},{{ a.category.color if a.category else '#2563eb' }}99);">
+          <i class="{{ a.category.icon if a.category else 'bi bi-newspaper' }}"></i>
+        </span>
+        {% endif %}
+        <span class="channel-headline-text">
+          <span class="channel-headline-time">
+            <i class="bi bi-clock"></i> {{ a.published_at.strftime('%H:%M') if a.published_at else '' }}
+          </span>
+          <span class="channel-headline-title">
+            {{ a.title }}
+            {% if a.is_breaking %}<span class="badge bg-danger ms-2">Breaking</span>{% endif %}
+            {% if a.is_trending %}<span class="badge bg-warning text-dark ms-2">Trending</span>{% endif %}
+          </span>
+          <span class="channel-headline-cat" style="color:{{ a.category.color if a.category else 'var(--muted)' }}">
+            {{ a.category.name if a.category else (a.source_name or '') }}
+          </span>
+        </span>
+      </a>
+    {% if loop.last %}</div></div>{% endif %}
+  {% endfor %}
+{% else %}
+  <p class="text-muted">{{ empty_message or 'No articles yet.' }}</p>
+{% endif %}

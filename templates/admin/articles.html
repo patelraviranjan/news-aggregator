@@ -1,0 +1,41 @@
+{% extends "layout/base.html" %}
+{% block title %}Articles — Admin{% endblock %}
+{% block content %}
+<div class="section-head d-flex justify-content-between align-items-center" data-aos="fade-up">
+  <h2><i class="bi bi-newspaper text-primary"></i> Articles</h2>
+  <a href="{{ url_for('admin.new_article') }}" class="btn btn-primary rounded-pill"><i class="bi bi-plus-lg"></i> Add Article</a>
+</div>
+
+<form method="get" class="d-flex align-items-center gap-2 mb-3" data-aos="fade-up">
+  <label class="fw-semibold small text-muted mb-0"><i class="bi bi-calendar3"></i> Date:</label>
+  <input type="date" name="date" value="{{ selected_date }}" class="form-control form-control-sm rounded-pill" style="max-width:170px" onchange="this.form.submit()">
+  {% if selected_date %}
+    <a href="{{ url_for('admin.articles') }}" class="btn btn-sm btn-outline-secondary rounded-pill">Clear</a>
+  {% endif %}
+  <select class="form-select form-select-sm rounded-pill" style="max-width:170px" onchange="if(this.value) window.location='{{ url_for('admin.articles') }}?date='+this.value">
+    <option value="">Jump to date…</option>
+    {% for d in available_dates %}
+      <option value="{{ d }}" {% if d == selected_date %}selected{% endif %}>{{ d }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="card border-0 shadow rounded-4 p-3"><div class="table-responsive"><table class="table table-hover align-middle">
+  <thead><tr><th>ID</th><th>Title</th><th>Date</th><th>Category</th><th>Source</th><th>Views</th><th></th></tr></thead>
+  <tbody>{% for a in items.items %}
+    <tr><td>{{ a.id }}</td><td>{{ a.title[:70] }}…</td>
+    <td class="text-nowrap">{{ a.published_at.strftime('%Y-%m-%d %H:%M') if a.published_at else '-' }}</td>
+    <td>{{ a.category.name if a.category else '-' }}</td><td>{{ a.source_name }}</td><td>{{ a.views }}</td>
+    <td class="text-end">
+      <a href="{{ url_for('admin.edit_article', aid=a.id) }}" class="btn btn-sm btn-outline-primary rounded-pill me-1"><i class="bi bi-pencil"></i></a>
+      <form method="post" action="{{ url_for('admin.delete_article', aid=a.id) }}" onsubmit="return confirm('Delete?');" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-danger rounded-pill"><i class="bi bi-trash"></i></button>
+      </form>
+    </td></tr>
+  {% else %}
+    <tr><td colspan="7" class="text-center text-muted py-4">No articles {% if selected_date %}on {{ selected_date }}{% endif %}.</td></tr>
+  {% endfor %}</tbody></table></div>
+{% include "partials/_pagination.html" with context %}
+</div>
+{% endblock %}

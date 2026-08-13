@@ -1,0 +1,75 @@
+{% extends "layout/base.html" %}
+{% block title %}Admin Dashboard — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3" data-aos="fade-down">
+  <h2 class="fw-bold gradient-text"><i class="bi bi-speedometer2"></i> Dashboard</h2>
+  <span class="badge bg-success">All systems operational</span>
+</div>
+
+<div class="row g-3" data-aos="fade-up">
+  <div class="col-6 col-md-3"><div class="stat-tile stat-blue"><div class="stat-icon"><i class="bi bi-people-fill"></i></div><div><div class="stat-value">{{ stats.users }}</div><div class="stat-label">Users</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-tile stat-green"><div class="stat-icon"><i class="bi bi-newspaper"></i></div><div><div class="stat-value">{{ stats.articles }}</div><div class="stat-label">Articles</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-tile stat-orange"><div class="stat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div><div><div class="stat-value">{{ stats.categories }}</div><div class="stat-label">Categories</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="stat-tile stat-purple"><div class="stat-icon"><i class="bi bi-broadcast"></i></div><div><div class="stat-value">{{ stats.sources }}</div><div class="stat-label">Sources</div></div></div></div>
+  {% if current_user.role == 'superadmin' %}
+  <div class="col-6 col-md-3"><a class="text-decoration-none" href="{{ url_for('admin.admins') }}"><div class="stat-tile stat-orange"><div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div><div><div class="stat-value">{{ stats.admins }}</div><div class="stat-label">Admins</div></div></div></a></div>
+  {% endif %}
+</div>
+
+<div class="row g-3 mt-2">
+  <div class="col-lg-7" data-aos="fade-right">
+    <div class="card border-0 shadow rounded-4 p-4 h-100">
+      <h5 class="fw-bold"><i class="bi bi-bar-chart-line"></i> Articles per category</h5>
+      <canvas id="catChart" height="180"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-5" data-aos="fade-left">
+    <div class="card border-0 shadow rounded-4 p-4 h-100">
+      <h5 class="fw-bold"><i class="bi bi-eye-fill"></i> Total views</h5>
+      <div class="display-4 fw-bold gradient-text">{{ stats.views }}</div>
+      <small class="text-muted">Across all articles</small>
+      <hr>
+      <h6><i class="bi bi-link-45deg"></i> Quick links</h6>
+      <div class="d-flex flex-column gap-2">
+        <a class="btn btn-outline-primary rounded-pill btn-sm" href="{{ url_for('admin.articles') }}">Manage articles</a>
+        <a class="btn btn-outline-success rounded-pill btn-sm" href="{{ url_for('admin.users') }}">Manage users</a>
+        <a class="btn btn-outline-warning rounded-pill btn-sm" href="{{ url_for('admin.categories') }}">Manage categories</a>
+        <a class="btn btn-outline-info rounded-pill btn-sm" href="{{ url_for('admin.feed') }}">Submit / manage feeds</a>
+        <a class="btn btn-outline-secondary rounded-pill btn-sm" href="{{ url_for('admin.logs') }}">Activity logs</a>
+        {% if current_user.role == 'superadmin' %}
+        <a class="btn btn-outline-danger rounded-pill btn-sm" href="{{ url_for('admin.admins') }}">Manage admins</a>
+        {% endif %}
+        <a class="btn btn-outline-dark rounded-pill btn-sm" href="{{ url_for('admin.profile') }}">My profile</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-2">
+  <div class="col-lg-7"><div class="card border-0 shadow rounded-4 p-4"><h5 class="fw-bold"><i class="bi bi-clock"></i> Recent articles</h5>
+    <div class="table-responsive"><table class="table table-hover align-middle">
+      <thead><tr><th>Title</th><th>Category</th><th>Source</th><th>Views</th></tr></thead>
+      <tbody>{% for a in recent_articles %}
+        <tr><td><a href="{{ url_for('news.article_detail', slug=a.slug) }}">{{ a.title[:60] }}…</a></td>
+            <td>{{ a.category.name if a.category else '—' }}</td><td>{{ a.source_name }}</td><td>{{ a.views }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </div></div>
+  <div class="col-lg-5"><div class="card border-0 shadow rounded-4 p-4"><h5 class="fw-bold"><i class="bi bi-people"></i> Recent users</h5>
+    <ul class="list-group list-group-flush">
+      {% for u in recent_users %}<li class="list-group-item px-0">{{ u.username }} <small class="text-muted">— {{ u.email }}</small></li>{% endfor %}
+    </ul>
+  </div></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const data = {{ cat_counts|tojson }};
+new Chart(document.getElementById('catChart'), {
+  type: 'bar',
+  data: { labels: data.map(d=>d[0]), datasets:[{label:'Articles',data:data.map(d=>d[1]),backgroundColor:'#ef4444cc',borderRadius:6,borderSkipped:false}]},
+  options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#475569'}},y:{beginAtZero:true,grid:{color:'#e2e8f0'}}}}
+});
+</script>
+{% endblock %}

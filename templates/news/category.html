@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+{% block title %}{{ cat.name }} — {{ site_name }}{% endblock %}
+{% block live_page %}category{% endblock %}
+{% block content %}
+<section class="category-hero" style="background:{{ cat.color }}22" data-aos="fade-up">
+  <i class="bi {{ cat.icon }} display-3" style="color:{{ cat.color }}"></i>
+  <h1 class="fw-bold mt-2">{{ cat.name }}</h1>
+  <p class="text-muted">{{ cat.description or 'Latest stories in ' + cat.name + '.' }}</p>
+</section>
+
+{% if by_channel %}
+<!-- Other platforms, this category only. Same box style as the homepage's
+     "Latest From Every Channel" but filtered down to {{ cat.name }} -- and
+     since it's rendered inside #live-region, it updates automatically the
+     moment any of these sources publish something new in this category. -->
+<section class="row g-4 mb-5" data-aos="fade-up">
+  <div class="col-12">
+    <div class="section-head"><h2><i class="bi bi-broadcast text-primary" style="color:{{ cat.color }}"></i> {{ cat.name }} — From Every Platform</h2></div>
+    <div class="row g-3">
+      {% for src, headlines in by_channel %}
+      <div class="col-md-6 col-lg-4">
+        <div class="channel-box h-100 rounded-4" style="background:var(--card);box-shadow:var(--shadow-s)">
+          <a class="channel-name-bar d-flex align-items-center justify-content-between text-decoration-none"
+             href="{{ url_for('public.channel', source_id=src.id) }}">
+            <span><i class="bi bi-rss-fill"></i> {{ src.name }}</span>
+            <span class="small">See all <i class="bi bi-arrow-right"></i></span>
+          </a>
+          <div class="channel-headline-list">
+            {% for a in headlines %}
+            <a class="channel-headline-item" href="{{ url_for('news.article_detail', slug=a.slug) }}">
+              {% if a.image_url %}
+              <span class="channel-headline-thumb" style="background-image:url('{{ proxy_img(a.image_url) }}')"></span>
+              {% else %}
+              <span class="channel-headline-thumb no-photo" style="background:linear-gradient(135deg,{{ cat.color }},{{ cat.color }}99);">
+                <i class="bi {{ cat.icon }}"></i>
+              </span>
+              {% endif %}
+              <span class="channel-headline-text">
+                <span class="channel-headline-time">
+                  <i class="bi bi-clock"></i> {{ a.published_at.strftime('%b %d, %H:%M') if a.published_at else '' }}
+                </span>
+                <span class="channel-headline-title">{{ a.title }}</span>
+              </span>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% with articles = (items.items if items.items is defined else items), empty_message = "No articles in this category yet." %}
+  {% include "partials/_date_grouped_articles.html" with context %}
+{% endwith %}
+{% include "partials/_pagination.html" with context %}
+{% endblock %}
