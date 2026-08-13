@@ -10,7 +10,21 @@ from app_modules.models import User
 
 
 def create_app() -> Flask:
-    app = Flask(__name__, static_folder="static", template_folder="templates")
+    # On Vercel the deployed code lives on a read-only filesystem, so
+    # Flask's default instance folder (<app_root>/instance) can't be
+    # created and db.init_app() below crashes with
+    # "OSError: [Errno 30] Read-only file system". Only /tmp is writable
+    # in that environment, so redirect the instance path there whenever
+    # we're running on Vercel. Locally (no VERCEL env var) this keeps
+    # using the normal ./instance folder next to the app.
+    if os.environ.get("VERCEL"):
+        instance_path = "/tmp/instance"
+        os.makedirs(instance_path, exist_ok=True)
+        app = Flask(__name__, static_folder="static", template_folder="templates",
+                    instance_relative_config=True, instance_path=instance_path)
+    else:
+        app = Flask(__name__, static_folder="static", template_folder="templates")
+
     cfg = get_config()
     app.config.from_object(cfg)
 
@@ -159,8 +173,12 @@ def create_app() -> Flask:
         db.create_all()
         _seed_defaults()
 
-        # Background RSS scheduler (skip during tests)
-        if not app.config.get("TESTING"):
+        # Background RSS scheduler (skip during tests, and skip on Vercel --
+        # serverless functions don't keep a background process alive, so an
+        # in-process APScheduler job here will silently never fire after
+        # this one cold-start invocation ends. Use Vercel Cron hitting a
+        # dedicated /api/fetch endpoint instead.)
+        if not app.config.get("TESTING") and not os.environ.get("VERCEL"):
             try:
                 from scheduler import start_scheduler
                 start_scheduler(app)
