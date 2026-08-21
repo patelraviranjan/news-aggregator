@@ -21,7 +21,24 @@ class BaseConfig:
     # "postgresql://". Normalize it here so pasting a connection string
     # straight from the provider's dashboard into DATABASE_URL just works
     # instead of crashing on boot with "Can't load plugin: ...postgres".
-    _db_url = os.getenv("DATABASE_URL", "sqlite:///news.db")
+    #
+    # Vercel's own "Storage -> Postgres" integration does NOT set
+    # DATABASE_URL -- it sets POSTGRES_URL / POSTGRES_PRISMA_URL /
+    # POSTGRES_URL_NON_POOLING instead. Requiring people to notice that
+    # and manually copy one into a DATABASE_URL var is exactly the kind
+    # of easy-to-miss step that leaves the app silently stuck on SQLite
+    # (empty feed, no error) even after they "connected the database" in
+    # the dashboard. So fall back through Vercel's names automatically --
+    # DATABASE_URL still wins if it's explicitly set, for every other
+    # provider (Neon/Supabase/Railway/etc. standalone accounts, Docker,
+    # local dev).
+    _db_url = (
+        os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or os.getenv("POSTGRES_PRISMA_URL")
+        or os.getenv("POSTGRES_URL_NON_POOLING")
+        or "sqlite:///news.db"
+    )
     if _db_url.startswith("postgres://"):
         _db_url = _db_url.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url

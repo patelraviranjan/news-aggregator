@@ -97,9 +97,15 @@ def create_app() -> Flask:
         # page (not just /api/status) -- an empty "No articles fetched
         # yet" feed with no visible error looks identical to a real bug,
         # so make the actual cause impossible to miss for whoever's
-        # looking at the site.
+        # looking at the site. Checks the same env var names config.py
+        # falls back through (Vercel's own Postgres integration doesn't
+        # use the name "DATABASE_URL").
         db_misconfig_warning = (
-            db.engine.dialect.name == "sqlite" and bool(os.environ.get("VERCEL"))
+            db.engine.dialect.name == "sqlite"
+            and bool(os.environ.get("VERCEL"))
+            and not any(os.environ.get(name) for name in
+                        ("DATABASE_URL", "POSTGRES_URL",
+                         "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING"))
         )
 
         def proxy_img(url):

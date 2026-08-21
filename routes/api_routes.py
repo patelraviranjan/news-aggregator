@@ -24,6 +24,16 @@ def api_status():
 
     dialect = db.engine.dialect.name
     sqlite_on_vercel = dialect == "sqlite" and bool(os.environ.get("VERCEL"))
+
+    # Which env var actually supplied the DB connection string, if any --
+    # helps distinguish "nothing set anywhere" from "set under a name the
+    # app doesn't check" at a glance instead of guessing from dialect alone.
+    db_url_source = next(
+        (name for name in ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL",
+                            "POSTGRES_URL_NON_POOLING") if os.environ.get(name)),
+        None,
+    )
+
     try:
         total_articles = Article.query.count()
         latest = Article.query.order_by(_desc(Article.published_at)).first()
@@ -37,11 +47,15 @@ def api_status():
 
     return jsonify({
         "db_dialect": dialect,
+        "db_url_source": db_url_source,
         "db_error": db_error,
         "sqlite_on_vercel_warning": (
-            "DATABASE_URL is SQLite while running on Vercel -- this WILL "
-            "NOT persist between requests. Set DATABASE_URL to a Postgres "
-            "connection string (Neon/Supabase/Vercel Postgres) and redeploy."
+            "No usable Postgres connection string was found (checked "
+            "DATABASE_URL, POSTGRES_URL, POSTGRES_PRISMA_URL, "
+            "POSTGRES_URL_NON_POOLING), so this is running on SQLite -- "
+            "this WILL NOT persist between requests. Connect a Postgres "
+            "database (Storage tab) or set DATABASE_URL to one "
+            "(Neon/Supabase) in Vercel's Environment Variables and redeploy."
             if sqlite_on_vercel else None
         ),
         "article_count": total_articles,
