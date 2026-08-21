@@ -42,10 +42,12 @@
       <i class="bi bi-exclamation-triangle-fill me-2"></i>
       <strong>Configuration issue:</strong> this site is running on Vercel with a
       SQLite database, which does not persist between requests, so the news
-      feed will stay empty forever. Set the <code>DATABASE_URL</code>
-      environment variable in Vercel to a Postgres connection string
-      (Neon, Supabase, or Vercel Postgres all work), then redeploy.
-      See <code>/api/status</code> for live diagnostics.
+      feed will stay empty forever. Connect a Postgres database from the
+      Storage tab (or set <code>DATABASE_URL</code> to a Postgres connection
+      string manually), then <strong>redeploy again after it's connected</strong>
+      &mdash; a deploy that finishes before the connection propagates won't
+      see it. See <code>/api/status</code> for live diagnostics.
+      <div class="mt-1 small text-muted">build: {{ build_tag }}</div>
     </div>
   {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}

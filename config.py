@@ -23,22 +23,33 @@ class BaseConfig:
     # instead of crashing on boot with "Can't load plugin: ...postgres".
     #
     # Vercel's own "Storage -> Postgres" integration does NOT set
-    # DATABASE_URL -- it sets POSTGRES_URL / POSTGRES_PRISMA_URL /
-    # POSTGRES_URL_NON_POOLING instead. Requiring people to notice that
-    # and manually copy one into a DATABASE_URL var is exactly the kind
-    # of easy-to-miss step that leaves the app silently stuck on SQLite
-    # (empty feed, no error) even after they "connected the database" in
-    # the dashboard. So fall back through Vercel's names automatically --
-    # DATABASE_URL still wins if it's explicitly set, for every other
-    # provider (Neon/Supabase/Railway/etc. standalone accounts, Docker,
-    # local dev).
-    _db_url = (
-        os.getenv("DATABASE_URL")
-        or os.getenv("POSTGRES_URL")
-        or os.getenv("POSTGRES_PRISMA_URL")
-        or os.getenv("POSTGRES_URL_NON_POOLING")
-        or "sqlite:///news.db"
+    # DATABASE_URL -- depending on how/when it was provisioned it sets one
+    # of several other names (POSTGRES_URL, POSTGRES_PRISMA_URL, etc.), or
+    # only the discrete PGHOST/PGUSER/... pieces with no combined URL at
+    # all. Requiring people to notice that and manually copy one into a
+    # DATABASE_URL var is exactly the kind of easy-to-miss step that
+    # leaves the app silently stuck on SQLite (empty feed, no error) even
+    # after they "connected the database" in the dashboard. So check every
+    # name Vercel/Neon has used for this, and fall back to assembling one
+    # from PG* pieces if that's all that's present. DATABASE_URL always
+    # wins if it's explicitly set, for every other provider (Neon/Supabase
+    # /Railway/etc. standalone accounts, Docker, local dev).
+    _pg_url_env_names = (
+        "DATABASE_URL", "DATABASE_URL_UNPOOLED",
+        "POSTGRES_URL", "POSTGRES_PRISMA_URL",
+        "POSTGRES_URL_NON_POOLING", "POSTGRES_URL_NO_SSL",
     )
+    _db_url = next((os.getenv(n) for n in _pg_url_env_names if os.getenv(n)), None)
+
+    if not _db_url and os.getenv("PGHOST") and os.getenv("PGUSER") and os.getenv("PGDATABASE"):
+        from urllib.parse import quote_plus
+        _pg_pass = quote_plus(os.getenv("PGPASSWORD", ""))
+        _pg_port = os.getenv("PGPORT", "5432")
+        _db_url = (f"postgresql://{os.getenv('PGUSER')}:{_pg_pass}@"
+                   f"{os.getenv('PGHOST')}:{_pg_port}/{os.getenv('PGDATABASE')}"
+                   f"?sslmode=require")
+
+    _db_url = _db_url or "sqlite:///news.db"
     if _db_url.startswith("postgres://"):
         _db_url = _db_url.replace("postgres://", "postgresql://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url

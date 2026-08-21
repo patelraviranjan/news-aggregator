@@ -28,11 +28,15 @@ def api_status():
     # Which env var actually supplied the DB connection string, if any --
     # helps distinguish "nothing set anywhere" from "set under a name the
     # app doesn't check" at a glance instead of guessing from dialect alone.
-    db_url_source = next(
-        (name for name in ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL",
-                            "POSTGRES_URL_NON_POOLING") if os.environ.get(name)),
-        None,
+    _checked_names = ("DATABASE_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL",
+                       "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING",
+                       "POSTGRES_URL_NO_SSL")
+    db_url_source = next((n for n in _checked_names if os.environ.get(n)), None)
+    pg_pieces_present = bool(
+        os.environ.get("PGHOST") and os.environ.get("PGUSER") and os.environ.get("PGDATABASE")
     )
+
+    from BUILD_INFO import BUILD_TAG
 
     try:
         total_articles = Article.query.count()
@@ -46,16 +50,24 @@ def api_status():
         db_error = str(ex)
 
     return jsonify({
+        "build_tag": BUILD_TAG,
         "db_dialect": dialect,
         "db_url_source": db_url_source,
+        "db_url_source_note": (
+            None if db_url_source else
+            "No connection-string env var found under any checked name. "
+            f"pg_discrete_vars_present={pg_pieces_present} (PGHOST/PGUSER/"
+            "PGDATABASE) -- if true, a URL was assembled from those instead."
+        ),
         "db_error": db_error,
         "sqlite_on_vercel_warning": (
             "No usable Postgres connection string was found (checked "
-            "DATABASE_URL, POSTGRES_URL, POSTGRES_PRISMA_URL, "
-            "POSTGRES_URL_NON_POOLING), so this is running on SQLite -- "
-            "this WILL NOT persist between requests. Connect a Postgres "
-            "database (Storage tab) or set DATABASE_URL to one "
-            "(Neon/Supabase) in Vercel's Environment Variables and redeploy."
+            f"{', '.join(_checked_names)}, and discrete PGHOST/PGUSER/"
+            "PGDATABASE/PGPASSWORD/PGPORT vars), so this is running on "
+            "SQLite -- this WILL NOT persist between requests. Connect a "
+            "Postgres database (Storage tab) and then REDEPLOY AGAIN after "
+            "it's connected -- a deploy that finished before the database "
+            "connection finished propagating will not pick up its env vars."
             if sqlite_on_vercel else None
         ),
         "article_count": total_articles,

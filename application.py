@@ -99,14 +99,22 @@ def create_app() -> Flask:
         # so make the actual cause impossible to miss for whoever's
         # looking at the site. Checks the same env var names config.py
         # falls back through (Vercel's own Postgres integration doesn't
-        # use the name "DATABASE_URL").
+        # use the name "DATABASE_URL", and depending on provisioning
+        # method may only set discrete PGHOST/PGUSER/PGDATABASE vars).
+        _pg_env_names = ("DATABASE_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_URL",
+                          "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING",
+                          "POSTGRES_URL_NO_SSL")
+        _has_pg_url = any(os.environ.get(n) for n in _pg_env_names)
+        _has_pg_pieces = bool(
+            os.environ.get("PGHOST") and os.environ.get("PGUSER") and os.environ.get("PGDATABASE")
+        )
         db_misconfig_warning = (
             db.engine.dialect.name == "sqlite"
             and bool(os.environ.get("VERCEL"))
-            and not any(os.environ.get(name) for name in
-                        ("DATABASE_URL", "POSTGRES_URL",
-                         "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING"))
+            and not _has_pg_url
+            and not _has_pg_pieces
         )
+        from BUILD_INFO import BUILD_TAG as _build_tag
 
         def proxy_img(url):
             """Route a remote article image through our own caching proxy so
@@ -127,6 +135,7 @@ def create_app() -> Flask:
             "yesterday": _today - timedelta(days=1),
             "proxy_img": proxy_img,
             "db_misconfig_warning": db_misconfig_warning,
+            "build_tag": _build_tag,
         }
 
     # ---------- Blueprints ----------
