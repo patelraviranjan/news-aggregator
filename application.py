@@ -93,6 +93,15 @@ def create_app() -> Flask:
                 unread_count = 0
         _today = date.today()
 
+        # Surface the SQLite-on-Vercel misconfiguration directly on every
+        # page (not just /api/status) -- an empty "No articles fetched
+        # yet" feed with no visible error looks identical to a real bug,
+        # so make the actual cause impossible to miss for whoever's
+        # looking at the site.
+        db_misconfig_warning = (
+            db.engine.dialect.name == "sqlite" and bool(os.environ.get("VERCEL"))
+        )
+
         def proxy_img(url):
             """Route a remote article image through our own caching proxy so
             hotlink-protected publishers (many Indian/Nepali news sites block
@@ -111,6 +120,7 @@ def create_app() -> Flask:
             "today": _today,
             "yesterday": _today - timedelta(days=1),
             "proxy_img": proxy_img,
+            "db_misconfig_warning": db_misconfig_warning,
         }
 
     # ---------- Blueprints ----------
@@ -148,6 +158,48 @@ def create_app() -> Flask:
             return {"error": "Too many requests", "status": 429}, 429
         return render_template("errors/404.html", message="Too many requests"), 429
 
+    # ---------- Self-healing feed (Vercel has no background scheduler) ----------
+    # /api/cron/fetch (driven by vercel.json's cron) is the "proper" way
+    # articles get fetched on Vercel, but that depends on: (a) the deploy
+    # actually shipping vercel.json's cron entry, (b) DATABASE_URL already
+    # being Postgres before the first cron tick, and (c) waiting for the
+    # schedule to fire (once/day on the Hobby plan). Any one of those being
+    # off looks identical from the outside: an empty "No articles fetched
+    # yet" homepage with no error on screen. Rather than depend on all three
+    # lining up, run one fetch cycle inline on the first real page view if
+    # the articles table is still empty, so the feed fills itself in as soon
+    # as someone actually visits the site -- cron then just keeps it fresh.
+    # A cache-backed lock caps this to at most one attempt every 2 minutes
+    # so concurrent visitors don't all trigger it at once, and it's a no-op
+    # the instant any article exists.
+    @app.before_request
+    def _self_heal_empty_feed():
+        if request.method != "GET":
+            return
+        if request.path.startswith(("/api/", "/static/", "/media/")):
+            return
+        try:
+            from app_modules.models import Article
+            if Article.query.first() is not None:
+                return  # feed already has data -- nothing to do
+        except Exception:
+            return  # table not ready / DB unreachable -- let the normal page render and show its own error
+
+        lock_key = "self_heal_fetch_lock"
+        if cache.get(lock_key):
+            return
+        cache.set(lock_key, True, timeout=120)
+
+        budget = app.config.get("CRON_TIME_BUDGET_SECONDS")
+        if budget is None and os.environ.get("VERCEL"):
+            budget = 8  # stay under Vercel's 10s Hobby-plan function timeout
+        try:
+            from scheduler import run_fetch_cycle
+            result = run_fetch_cycle(app, max_seconds=budget)
+            app.logger.info("Self-heal fetch on empty feed: %s", result)
+        except Exception as ex:
+            app.logger.warning("Self-heal fetch failed: %s", ex)
+
     # ---------- Bootstrap DB + admin + scheduler ----------
     with app.app_context():
         # SQLite only allows one writer at a time. Gunicorn runs multiple
@@ -169,6 +221,27 @@ def create_app() -> Flask:
                 cur.execute("PRAGMA journal_mode=WAL")
                 cur.execute("PRAGMA busy_timeout=30000")
                 cur.close()
+
+        # On Vercel each request can land on a different, freshly-booted
+        # serverless instance, and even repeat requests to "the same"
+        # instance don't keep /tmp around forever (it's wiped on redeploy
+        # and reclaimed between cold starts). A SQLite file living in /tmp
+        # therefore isn't shared between the web request that reads
+        # articles and the cron request that fetched them -- so the site
+        # deploys fine, /api/cron/fetch reports success, and the feed still
+        # shows "No articles fetched yet" forever, with nothing that looks
+        # like an error anywhere. This is the actual root cause of that
+        # symptom, so make it loud instead of a silent empty feed.
+        if os.environ.get("VERCEL") and app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+            app.logger.warning(
+                "Running on Vercel with a SQLite DATABASE_URL. Articles fetched "
+                "by /api/cron/fetch will NOT reliably show up on the site -- "
+                "SQLite on Vercel's serverless filesystem isn't persistent or "
+                "shared across function instances. Set DATABASE_URL to a real "
+                "Postgres database (Vercel Postgres, Neon, Supabase, etc.)."
+            )
+            print("\n*** WARNING: SQLite on Vercel is not persistent -- the feed "
+                  "will stay empty until DATABASE_URL points at Postgres. ***\n")
 
         db.create_all()
         _seed_defaults()

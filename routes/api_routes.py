@@ -1,5 +1,6 @@
 """JSON REST API endpoints documented in the spec."""
-from flask import Blueprint, request, jsonify, abort
+import os
+from flask import Blueprint, request, jsonify, abort, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_login import current_user, login_required
 from sqlalchemy import desc, or_
@@ -8,6 +9,89 @@ from app_modules.models import User, Article, Category, Bookmark, Source
 from app_modules.security import sanitize_html, csrf_required
 
 api_bp = Blueprint("api", __name__)
+
+
+# ---- Diagnostics ----
+
+@api_bp.route("/status")
+def api_status():
+    """No-secret diagnostic endpoint -- open this URL in a browser to see
+    exactly why the feed is/isn't showing, instead of guessing. Doesn't
+    expose the CRON_SECRET value itself, only whether one is set.
+    """
+    from app_modules.models import Article, Source
+    from sqlalchemy import desc as _desc
+
+    dialect = db.engine.dialect.name
+    sqlite_on_vercel = dialect == "sqlite" and bool(os.environ.get("VERCEL"))
+    try:
+        total_articles = Article.query.count()
+        latest = Article.query.order_by(_desc(Article.published_at)).first()
+        active_sources = Source.query.filter_by(is_active=True).count()
+        db_error = None
+    except Exception as ex:
+        total_articles = None
+        latest = None
+        active_sources = None
+        db_error = str(ex)
+
+    return jsonify({
+        "db_dialect": dialect,
+        "db_error": db_error,
+        "sqlite_on_vercel_warning": (
+            "DATABASE_URL is SQLite while running on Vercel -- this WILL "
+            "NOT persist between requests. Set DATABASE_URL to a Postgres "
+            "connection string (Neon/Supabase/Vercel Postgres) and redeploy."
+            if sqlite_on_vercel else None
+        ),
+        "article_count": total_articles,
+        "active_sources": active_sources,
+        "latest_article_at": latest.published_at.isoformat() if latest and latest.published_at else None,
+        "cron_secret_configured": bool(current_app.config.get("CRON_SECRET")),
+        "running_on_vercel": bool(os.environ.get("VERCEL")),
+    })
+
+
+# ---- Cron (Vercel) ----
+
+@api_bp.route("/cron/fetch", methods=["GET", "POST"])
+def api_cron_fetch():
+    """Runs one RSS fetch cycle. This is what actually populates the feed
+    on Vercel -- serverless functions don't keep a background process
+    alive, so `scheduler.py`'s APScheduler loop never fires there
+    (application.py skips starting it whenever the VERCEL env var is set).
+    Instead, Vercel Cron (configured in vercel.json) sends an HTTP request
+    to this endpoint on a schedule, and each request runs exactly one
+    fetch cycle before the function exits.
+
+    Protected by CRON_SECRET so randoms can't hit this URL and force
+    fetch cycles: Vercel automatically sends
+    `Authorization: Bearer <CRON_SECRET>` on cron-triggered requests once
+    a CRON_SECRET env var exists on the project, so this only has to
+    compare that header. A `?secret=` query param is also accepted so it
+    can still be triggered manually (e.g. `curl`) for testing.
+    """
+    expected = current_app.config.get("CRON_SECRET")
+    if expected:
+        sent = request.headers.get("Authorization", "")
+        sent = sent.split("Bearer ", 1)[-1] if "Bearer " in sent else sent
+        if sent != expected and request.args.get("secret") != expected:
+            return jsonify({"error": "unauthorized"}), 401
+    else:
+        current_app.logger.warning(
+            "CRON_SECRET is not set -- /api/cron/fetch is running with no "
+            "auth check. Set a CRON_SECRET env var in Vercel so only "
+            "Vercel Cron (or someone who knows the secret) can trigger it."
+        )
+
+    from scheduler import run_fetch_cycle
+    # Soft time budget so a slow/hanging source can't eat the whole
+    # function timeout (10s on Vercel Hobby, 60s+ on Pro) and leave every
+    # other source unfetched. Configurable via CRON_TIME_BUDGET_SECONDS if
+    # the default doesn't fit your plan.
+    budget = current_app.config.get("CRON_TIME_BUDGET_SECONDS")
+    result = run_fetch_cycle(current_app._get_current_object(), max_seconds=budget)
+    return jsonify({"ok": True, **result})
 
 
 # ---- Auth ----

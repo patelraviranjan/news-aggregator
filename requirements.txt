@@ -21,3 +21,7 @@ PyJWT==2.9.0
 markdown==3.7
 bleach==6.1.0
 google-auth==2.35.0
+# Needed for DATABASE_URL=postgresql://... in production (e.g. Vercel).
+# Vercel's build only installs this file, not requirements-postgres.txt,
+# so it has to live here for a Postgres DATABASE_URL to actually work.
+psycopg2-binary==2.9.9

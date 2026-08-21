@@ -54,6 +54,86 @@ def _acquire_singleton_lock():
     return True
 
 
+def run_fetch_cycle(app, max_seconds=None):
+    """Run one full fetch cycle: pull every active source's RSS feed (plus
+    optional NewsAPI/GNews), persist new articles, and recalc trending.
+
+    Extracted out of the old in-process `job()` closure so the exact same
+    logic can be invoked two ways:
+      1. By APScheduler on a normal long-running server (local dev / Docker).
+      2. By a plain HTTP request from a Vercel Cron job hitting
+         `/api/cron/fetch`, since Vercel's serverless functions don't keep a
+         background process alive for APScheduler to run inside of.
+
+    `max_seconds` (optional) is a soft time budget -- useful on Vercel where
+    a single function invocation is capped (10s on Hobby, 60s+ on Pro).
+    Sources are processed in order and the loop stops picking up *new*
+    sources once the budget is exceeded (a source already in progress is
+    still allowed to finish), so a cron tick that can't get through every
+    source in one run still makes partial progress instead of timing out
+    mid-request with nothing saved.
+    """
+    import time
+    from app_modules.extensions import db
+    from app_modules.models import Source
+    from services.news_fetcher import fetch_rss, fetch_newsapi, fetch_gnews, persist
+
+    start = time.monotonic()
+    with app.app_context():
+        sources = Source.query.filter_by(is_active=True).all()
+        inserted_total = 0
+        sources_done = 0
+        for s in sources:
+            if max_seconds and (time.monotonic() - start) > max_seconds:
+                log.info("Fetch cycle time budget (%ss) reached; stopping early "
+                         "after %d/%d sources -- remaining sources pick up next run.",
+                         max_seconds, sources_done, len(sources))
+                break
+            if not s.rss_url:
+                continue
+            try:
+                # limit=None pulls every entry the feed currently offers
+                # (same as the manual "Fetch now" button) instead of
+                # capping at 20/cycle -- persist() already dedupes via
+                # content-hash slugs, so re-fetching the full feed each
+                # cycle only ever inserts what's actually new.
+                items = list(fetch_rss(s.rss_url, s.name, limit=None))
+                # persist()'s default max_image_enrich=3 was written for
+                # a single manual add, not a recurring auto-fetch --
+                # left at 3, every cycle only ever gave 3 of that
+                # source's new articles a real image (one og:image
+                # scrape per missing image), so headline/card lists
+                # were mostly showing the no-photo placeholder icon
+                # instead of actual thumbnails. Match the same cap the
+                # manual "Fetch now" / "Add source" actions use.
+                inserted_total += persist(app, items, source_model=s,
+                                           max_image_enrich=min(len(items), 25))
+            except Exception as ex:
+                log.warning("Source %s failed: %s", s.name, ex)
+            sources_done += 1
+
+        # optional external APIs
+        if app.config.get("NEWSAPI_KEY"):
+            for cat in ("technology", "business", "sports", "world"):
+                items = list(fetch_newsapi(app.config["NEWSAPI_KEY"], category=cat, limit=100))
+                inserted_total += persist(app, items, category_slug=cat,
+                                           max_image_enrich=min(len(items), 25))
+        if app.config.get("GNEWS_API_KEY"):
+            items = list(fetch_gnews(app.config["GNEWS_API_KEY"], limit=100))
+            inserted_total += persist(app, items, max_image_enrich=min(len(items), 25))
+
+        # update trending
+        try:
+            from services.trending_service import recalc_trending
+            recalc_trending()
+        except Exception:
+            pass
+        log.info("Fetch cycle complete: %d new articles cached (%d/%d sources).",
+                  inserted_total, sources_done, len(sources))
+        return {"inserted": inserted_total, "sources_done": sources_done,
+                "sources_total": len(sources)}
+
+
 def start_scheduler(app):
     if not _acquire_singleton_lock():
         log.info("Scheduler already running in another worker process; skipping here.")
@@ -63,53 +143,7 @@ def start_scheduler(app):
     sched = BackgroundScheduler(daemon=True)
 
     def job():
-        with app.app_context():
-            from app_modules.extensions import db
-            from app_modules.models import Source
-            from services.news_fetcher import fetch_rss, fetch_newsapi, fetch_gnews, persist
-
-            sources = Source.query.filter_by(is_active=True).all()
-            inserted_total = 0
-            for s in sources:
-                if not s.rss_url:
-                    continue
-                try:
-                    # limit=None pulls every entry the feed currently offers
-                    # (same as the manual "Fetch now" button) instead of
-                    # capping at 20/cycle -- persist() already dedupes via
-                    # content-hash slugs, so re-fetching the full feed each
-                    # cycle only ever inserts what's actually new.
-                    items = list(fetch_rss(s.rss_url, s.name, limit=None))
-                    # persist()'s default max_image_enrich=3 was written for
-                    # a single manual add, not a recurring auto-fetch --
-                    # left at 3, every cycle only ever gave 3 of that
-                    # source's new articles a real image (one og:image
-                    # scrape per missing image), so headline/card lists
-                    # were mostly showing the no-photo placeholder icon
-                    # instead of actual thumbnails. Match the same cap the
-                    # manual "Fetch now" / "Add source" actions use.
-                    inserted_total += persist(app, items, source_model=s,
-                                               max_image_enrich=min(len(items), 25))
-                except Exception as ex:
-                    log.warning("Source %s failed: %s", s.name, ex)
-
-            # optional external APIs
-            if app.config.get("NEWSAPI_KEY"):
-                for cat in ("technology", "business", "sports", "world"):
-                    items = list(fetch_newsapi(app.config["NEWSAPI_KEY"], category=cat, limit=100))
-                    inserted_total += persist(app, items, category_slug=cat,
-                                               max_image_enrich=min(len(items), 25))
-            if app.config.get("GNEWS_API_KEY"):
-                items = list(fetch_gnews(app.config["GNEWS_API_KEY"], limit=100))
-                inserted_total += persist(app, items, max_image_enrich=min(len(items), 25))
-
-            # update trending
-            try:
-                from services.trending_service import recalc_trending
-                recalc_trending()
-            except Exception:
-                pass
-            log.info("Scheduler cycle complete: %d new articles cached.", inserted_total)
+        run_fetch_cycle(app)
 
     # Bug fix: next_run_time=None left the job permanently paused with no
     # scheduled fire time, so news never actually auto-refreshed. Run once

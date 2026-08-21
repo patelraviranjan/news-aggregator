@@ -16,7 +16,15 @@ class BaseConfig:
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-change-me")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///news.db")
+    # SQLAlchemy 2.x/psycopg2 reject the "postgres://" scheme that Neon,
+    # old Heroku-style providers, etc. hand out by default -- it has to be
+    # "postgresql://". Normalize it here so pasting a connection string
+    # straight from the provider's dashboard into DATABASE_URL just works
+    # instead of crashing on boot with "Can't load plugin: ...postgres".
+    _db_url = os.getenv("DATABASE_URL", "sqlite:///news.db")
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Password hashing cost — 11 rounds keeps login/register comfortably
@@ -42,6 +50,16 @@ class BaseConfig:
 
     # Scheduler
     FETCH_INTERVAL_MINUTES = int(os.getenv("FETCH_INTERVAL_MINUTES", 1))
+
+    # Vercel Cron -- see routes/api_routes.py:api_cron_fetch and vercel.json.
+    # Vercel auto-populates this as the Authorization header on cron-triggered
+    # requests whenever a CRON_SECRET env var exists on the project; set the
+    # same value locally only if you want to test the endpoint manually.
+    CRON_SECRET = os.getenv("CRON_SECRET", "")
+    CRON_TIME_BUDGET_SECONDS = (
+        int(os.getenv("CRON_TIME_BUDGET_SECONDS"))
+        if os.getenv("CRON_TIME_BUDGET_SECONDS") else None
+    )
 
     # Uploads
     UPLOAD_FOLDER = os.path.join("static", "uploads")

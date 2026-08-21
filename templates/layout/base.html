@@ -7,6 +7,12 @@
   <title>{% block title %}News Aggregator — Every Story, One Place{% endblock %}</title>
   <meta name="description" content="{% block description %}News Aggregator pulls top stories from trustworthy sources worldwide. AI-curated, beautifully designed, fully responsive.{% endblock %}">
   <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+  <!-- Explicit .ico/.png fallbacks: many browsers request /favicon.ico
+       straight from the domain root regardless of the SVG link above,
+       which 404'd since only the .svg existed. -->
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon-32.png') }}" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/favicon-256.png') }}">
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
@@ -31,6 +37,17 @@
 {% block hero %}{% endblock %}
 
 <main class="container-xxl px-3 px-lg-4 my-4" id="live-main">
+  {% if db_misconfig_warning %}
+    <div class="alert alert-danger shadow-sm rounded-4 mb-4" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>Configuration issue:</strong> this site is running on Vercel with a
+      SQLite database, which does not persist between requests, so the news
+      feed will stay empty forever. Set the <code>DATABASE_URL</code>
+      environment variable in Vercel to a Postgres connection string
+      (Neon, Supabase, or Vercel Postgres all work), then redeploy.
+      See <code>/api/status</code> for live diagnostics.
+    </div>
+  {% endif %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="flash-stack">

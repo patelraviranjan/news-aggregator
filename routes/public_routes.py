@@ -23,6 +23,21 @@ _IMG_HEADERS = {
 }
 
 
+@public_bp.route("/favicon.ico")
+def favicon_ico():
+    """Serve the root-level /favicon.ico directly. Browsers request this
+    exact path on their own, independent of any <link rel="icon"> tag in
+    <head>, so relying on the static file only being reachable at
+    /static/favicon.ico left every first page load logging a 404."""
+    return current_app.send_static_file("favicon.ico")
+
+
+@public_bp.route("/favicon.png")
+def favicon_png():
+    """Same as favicon.ico above, for clients that request /favicon.png."""
+    return current_app.send_static_file("favicon.png")
+
+
 @public_bp.route("/media/img")
 def image_proxy():
     """Fetch + cache a remote article image on our own domain.
