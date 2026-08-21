@@ -1,10 +1,22 @@
-﻿.env
-.venv/
-venv/
+# Environment / secrets
+.env
+*.env
+!.env.example
+
+# Python
 __pycache__/
-*.py[cod]
+*.pyc
+venv/
+.venv/
+
+# DB
 *.db
-*.db-shm
-*.db-wal
 instance/
-static/uploads/img_cache/
+
+# Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
+# OS/editor
+.DS_Store
+.vscode/

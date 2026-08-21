@@ -5,4 +5,4 @@ instead of guessing from banner text alone (env var propagation timing,
 stale CDN/browser caches, and deploying the wrong branch/zip can all make
 "I redeployed" and "the new code is live" different things).
 """
-BUILD_TAG = "2026-08-21-db-env-fallback-v2"
+BUILD_TAG = "2026-08-21-env-secret-cleanup-v3"
